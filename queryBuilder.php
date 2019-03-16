@@ -41,7 +41,7 @@ class RawQueryBuilder {
   private $output = null;
 
   public function getOutput() {
-    return '('.$this->output.')';
+    return '(' . $this->output . ')';
   }
 
   private function setOutput($out) {
@@ -76,13 +76,15 @@ class RawQueryBuilder {
 class QueryBuilder {
 
   private $selects = [];
+  private $tables = [];
+  private $wheres = [];
+  private $whereDelimiterIndex = -1;
 
   public function select($field, $alias = null) {
 
     if ($field instanceof RawQueryBuilder) {
-      
-       $this->selects[] = [$field->getOutput(), UtilsQueryBuilder::toAlias($alias)];
-      
+
+      $this->selects[] = [$field->getOutput(), UtilsQueryBuilder::toAlias($alias)];
     } else {
       $clearField = trim($field);
 
@@ -129,79 +131,79 @@ class QueryBuilder {
 
     return $this;
   }
-  
+
   public function distinct($field, $alias = null) {
     $clearField = trim($field);
-    
-    $tmpField='DISTINCT '.UtilsQueryBuilder::appendBracket($clearField);
-    
+
+    $tmpField = 'DISTINCT ' . UtilsQueryBuilder::appendBracket($clearField);
+
     if ($alias == null) {
-        $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($clearField)];
+      $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($clearField)];
     } else {
       $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($alias)];
     }
     return $this;
   }
-  
+
   public function max($field, $alias = null) {
     $clearField = trim($field);
-    
-    $tmpField='MAX('.UtilsQueryBuilder::appendBracket($clearField).')';
-    
+
+    $tmpField = 'MAX(' . UtilsQueryBuilder::appendBracket($clearField) . ')';
+
     if ($alias == null) {
-        $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($clearField)];
+      $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($clearField)];
     } else {
       $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($alias)];
     }
     return $this;
   }
-  
+
   public function min($field, $alias = null) {
     $clearField = trim($field);
-    
-    $tmpField='MIN('.UtilsQueryBuilder::appendBracket($clearField).')';
-    
+
+    $tmpField = 'MIN(' . UtilsQueryBuilder::appendBracket($clearField) . ')';
+
     if ($alias == null) {
-        $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($clearField)];
+      $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($clearField)];
     } else {
       $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($alias)];
     }
     return $this;
   }
-  
+
   public function sum($field, $alias = null) {
     $clearField = trim($field);
-    
-    $tmpField='SUM('.UtilsQueryBuilder::appendBracket($clearField).')';
-    
+
+    $tmpField = 'SUM(' . UtilsQueryBuilder::appendBracket($clearField) . ')';
+
     if ($alias == null) {
-        $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($clearField)];
+      $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($clearField)];
     } else {
       $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($alias)];
     }
     return $this;
   }
-  
+
   public function avg($field, $alias = null) {
     $clearField = trim($field);
-    
-    $tmpField='AVG('.UtilsQueryBuilder::appendBracket($clearField).')';
-    
+
+    $tmpField = 'AVG(' . UtilsQueryBuilder::appendBracket($clearField) . ')';
+
     if ($alias == null) {
-        $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($clearField)];
+      $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($clearField)];
     } else {
       $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($alias)];
     }
     return $this;
   }
-  
+
   public function count($field, $alias = null) {
     $clearField = trim($field);
-    
-    $tmpField='COUNT('.UtilsQueryBuilder::appendBracket($clearField).')';
-    
+
+    $tmpField = 'COUNT(' . UtilsQueryBuilder::appendBracket($clearField) . ')';
+
     if ($alias == null) {
-        $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($clearField)];
+      $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($clearField)];
     } else {
       $this->selects[] = [$tmpField, UtilsQueryBuilder::toAlias($alias)];
     }
@@ -210,6 +212,87 @@ class QueryBuilder {
 
   public function getSelects() {
     return $this->selects;
+  }
+
+  public function getWheres() {
+    return $this->wheres;
+  }
+
+  public function from($tableName, $alias = null) {
+
+    if ($tableName instanceof RawQueryBuilder) {
+
+      $this->tables[] = [$tableName->getOutput(), UtilsQueryBuilder::toAlias($alias)];
+    } else {
+      $clearTableName = trim($tableName);
+
+      $tmpTableName = UtilsQueryBuilder::appendBracket($clearTableName);
+
+      if ($alias == null) {
+        $this->tables[] = [$tmpTableName, null];
+      } else {
+        $this->tables[] = [$tmpTableName, UtilsQueryBuilder::toAlias($alias)];
+      }
+    }
+    return $this;
+  }
+
+  public function where($field, $value = null, $op = '=', $type = 'and') {
+
+    if ($field instanceof RawQueryBuilder) {
+      $row = [$field->getOutput(), null, null, $type];
+
+      if ($this->whereDelimiterIndex > -1) {
+        $this->wheres[$this->whereDelimiterIndex][] = $row;
+      } else {
+        $this->wheres[] = [$row];
+      }
+    } else {
+      $tmpField = UtilsQueryBuilder::appendBracket($field);
+
+      $row = [$type, $tmpField, $value, $op];
+      if ($this->whereDelimiterIndex > -1) {
+        $this->wheres[$this->whereDelimiterIndex][] = $row;
+      } else {
+        $this->wheres[] = [$row];
+      }
+    }
+
+    return $this;
+  }
+
+  public function whereGroup(callable $func) {
+    if (is_callable($func)) {
+      $this->whereDelimiterIndex = count($this->wheres);
+      $func($this);
+      $this->whereDelimiterIndex = -1;
+    }
+    return $this;
+  }
+
+  public function whereOr($field, $value=null, $op = '=') {
+    $this->where($field, $value, $op, 'or');
+    return $this;
+  }
+  
+  public function whereBetween($field, $value1, $value2) {
+    $this->where($field, [$value1,$value2], 'between', 'and');
+    return $this;
+  }
+  
+  public function whereBetweenOr($field, $value1, $value2) {
+    $this->where($field, [$value1,$value2], 'between', 'or');
+    return $this;
+  }
+  
+  public function whereIn($field,array $values) {
+    $this->where($field, $values, 'in', 'and');
+    return $this;
+  }
+  
+  public function whereInOr($field, $values) {
+    $this->where($field, $values, 'in', 'or');
+    return $this;
   }
 
   public function getQuery() {
